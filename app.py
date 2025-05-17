@@ -111,12 +111,27 @@ def generate_response(question, chunks):
     # Prepare context from chunks
     context = "\n\n".join([f"Text: {chunk['text']}" for chunk in chunks])
 
+    # Enhanced system prompt for more natural and comprehensive responses
+    system_prompt = """
+You are an intelligent and helpful AI assistant providing document-based information.
+
+When responding to questions:
+1. Address the user as "Dear user" and maintain a friendly, formal, and professional tone
+2. Provide comprehensive and detailed answers based on the given context
+3. Organize your responses with clear structure when appropriate
+4. Speak naturally and conversationally while maintaining professionalism
+5. If the information is not in the context, politely acknowledge this limitation
+6. End your responses with a friendly closing remark or offer for further assistance
+
+Your goal is to make the user feel comfortable and valued while providing accurate information.
+"""
+
     # Generate response using Groq
     response = groq_client.chat.completions.create(
         model="llama3-70b-8192",
         messages=[
-            {"role": "system", "content": "You are an AI assistant. Provide answers based on the given context."},
-            {"role": "user", "content": f"""Use the following pieces of information to answer the question. If the information is not in the context, say you don't know.
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"""Use the following pieces of information to answer the question. If the information is not in the context, politely say you don't have enough information.
 
 Context:
 {context}
@@ -128,32 +143,41 @@ Question: {question}"""}
     return response.choices[0].message.content
 
 # App title and description
-st.title("📚 Document Q&A with RAG")
+st.title("📚 Document Intelligence Assistant")
 st.markdown("""
-This application uses Retrieval Augmented Generation (RAG) to answer questions about your documents.
-Upload a PDF file, and then ask questions about its content.
+### Welcome to your Personal Document Assistant
+
+This intelligent application helps you extract insights from your documents using advanced AI technology.
+
+**How it works:**
+The system uses Retrieval Augmented Generation (RAG) to provide accurate, context-aware answers to your questions about document content.
+
+Simply upload your PDF document and start a conversation about its contents.
 """)
 
 # Sidebar for document upload
 with st.sidebar:
-    st.header("Document Management")
+    st.header("📁 Document Management")
+
+    st.markdown("Please upload your document to begin analysis.")
 
     # File uploader
-    uploaded_file = st.file_uploader("Upload a PDF document", type="pdf")
+    uploaded_file = st.file_uploader("Select PDF Document", type="pdf")
 
 # Main content area
 col1, col2 = st.columns([3, 2])
 
 # Document processing section
 with col1:
-    st.header("Document Processing")
+    st.header("📊 Document Analysis")
 
     if uploaded_file is not None:
-        # Display file info
-        st.info(f"File: {uploaded_file.name} ({uploaded_file.size} bytes)")
+        # Display file info with more professional formatting
+        st.success(f"Document Ready: **{uploaded_file.name}**")
+        st.markdown(f"*Size: {uploaded_file.size/1024:.1f} KB | Type: PDF*")
 
-        # Process button
-        if st.button("Process Document"):
+        # Process button with more professional text
+        if st.button("📝 Analyze Document Content"):
             with st.spinner("Processing document..."):
                 try:
                     # Save uploaded file to a temporary file
@@ -171,21 +195,22 @@ with col1:
                     os.unlink(pdf_path)
 
                     st.session_state.document_processed = True
-                    st.success(f"Document processed successfully! Extracted {len(chunks)} chunks.")
+                    st.success(f"🎉 Analysis Complete! Successfully processed {len(chunks)} content segments from your document.")
+                    st.info("💡 You can now ask questions about the document content in the consultation panel.")
                 except Exception as e:
-                    st.error(f"Error processing document: {str(e)}")
+                    st.error(f"🚨 Document Analysis Issue: {str(e)}\n\nPlease try again with a different document or contact support if the problem persists.")
     else:
-        st.warning("Please upload a PDF document.")
+        st.info("📄 Please upload a PDF document to begin the analysis process.")
 
 # Q&A section
 with col2:
-    st.header("Ask Questions")
+    st.header("💬 Document Consultation")
 
-    # Question input
-    question = st.text_input("Enter your question about the document")
+    # Question input with more professional prompt
+    question = st.text_input("What would you like to know about this document?")
 
-    # Answer button
-    if st.button("Get Answer"):
+    # Answer button with more professional text
+    if st.button("🔍 Generate Comprehensive Answer"):
         if question:
             if uploaded_file is not None and st.session_state.get('document_processed', False):
                 with st.spinner("Generating answer..."):
@@ -196,34 +221,46 @@ with col2:
                         # Generate response
                         answer = generate_response(question, relevant_chunks)
 
-                        # Display answer
-                        st.subheader("Answer:")
-                        st.write(answer)
+                        # Display answer with better formatting
+                        st.subheader("💬 Response:")
+                        st.markdown(f"""{answer}""")
 
-                        # Display sources (optional)
-                        with st.expander("View sources"):
+                        # Display sources with better formatting
+                        with st.expander("📗 View Reference Sources"):
+                            st.markdown("The response was generated based on these sections from your document:")
                             for i, chunk in enumerate(relevant_chunks):
-                                st.markdown(f"**Source {i+1}:**")
-                                st.text(chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"])
+                                st.markdown(f"**Reference {i+1}:**")
+                                st.markdown(f"""```
+{chunk["text"][:300] + "..." if len(chunk["text"]) > 300 else chunk["text"]}
+```""")
+                                st.markdown(f"*Page {chunk['metadata'].get('page', 'N/A')}*")
                     except Exception as e:
-                        st.error(f"Error generating answer: {str(e)}")
+                        st.error(f"🚨 Response Generation Issue: {str(e)}\n\nPlease try again or rephrase your question.")
             else:
-                st.warning("Please upload and process a document first.")
+                st.info("📝 Please upload and analyze a document before asking questions.")
         else:
-            st.warning("Please enter a question.")
+            st.info("🔎 Please enter your question about the document.")
 
 # Display usage instructions
 st.markdown("""
-### How to use this app:
-1. Upload a PDF document using the sidebar
-2. Click "Process Document" to extract and index the content
-3. Enter your question in the text box
-4. Click "Get Answer" to generate a response based on the document content
+### Getting Started:
+
+**Step 1:** Upload your PDF document using the sidebar panel
+**Step 2:** Click "Process Document" to analyze and index the content
+**Step 3:** Type your question about the document in the text field
+**Step 4:** Click "Get Answer" to receive a comprehensive response
+
+*For optimal results, ask specific questions related to the document content.*
 """)
 
 # Footer
 st.markdown("---")
-st.markdown("Built with Groq and Streamlit")
+st.markdown("""
+<div style='text-align: center; color: #666;'>
+    <p>Powered by advanced AI technology | Designed to enhance your document analysis experience</p>
+    <p>© 2025 Document Intelligence Assistant</p>
+</div>
+""", unsafe_allow_html=True)
 
 if __name__ == "__main__":
     # This will only run when the script is executed directly
